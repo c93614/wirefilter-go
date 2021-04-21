@@ -7,6 +7,15 @@ import (
     "github.com/c93614/wirefilter-go"
 )
 
+const (
+    ACTION_BLOCK     = iota
+    ACTION_CHALLENGE
+    ACTION_WHITELIST
+)
+
+func load_rules() {
+}
+
 func main() {
     // https://developers.cloudflare.com/firewall/cf-firewall-language/operators
     fmt.Print("wirefilter version: ", wirefilter.Version(), "\n")
@@ -35,13 +44,13 @@ func main() {
         "internal":            true,
     }
 
-    fmt.Println("Context:\n========")
+    fmt.Println("\n\nExecutionContext:\n------")
     for key, value := range ctxMap {
         fmt.Print(key, ": ", value, "\n")
         ctx.SetFieldValue(key, value)
     }
 
-    fmt.Println("\n\nResult:\n------")
+    fmt.Println("\n\nRules:\n------")
     rules := []string{
         `http.request.method eq "GET"`,
         `http.request.method eq "POST"`,
@@ -55,6 +64,7 @@ func main() {
         `ip.geoip.asnum == 1111`,
         `ip.geoip.asnum > 1111`,
         `ip.geoip.asnum > 1110`,
+        `ip.geoip.asnum 1110`,
         `ip.geoip.asnum eq 1111`,
         `ip.geoip.asnum eq 1112`,
         `ip.geoip.asnum in {1111}`,
@@ -80,16 +90,14 @@ func main() {
             continue
         }
 
-        // filter.Close() ?
-        //use, _ := ast.Uses("ip.src.ipv4")
-        //log.Print(ast.JSON())
-
-        ast.JSON()
-
+        //*
         filter := ast.Compile()
-        //ast.Hash()
-        //ast.Uses("ip.src.ipv4")
+        fmt.Print(rule, "\n=> Match: ", filter.Execute(ctx), "\n\n")
+        filter.Close()
+        /*/
+        fmt.Print(rule, "\n=> JSON: ", ast.JSON(), "\n=> Hash: ", ast.Hash(), "\n\n")
+        //*/
 
-        fmt.Print(rule, "\n=> ", filter.Execute(ctx), "\n\n")
+        ast.Close()
     }
 }

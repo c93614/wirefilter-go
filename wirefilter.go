@@ -72,14 +72,17 @@ func (s Schema) Parse(input string) (*AST, error) {
             data:   cInput,
             length: cInputSizeT,
         })
-    s.rst = parsingResult
+    // fmt.Printf("%p\n", &parsingResult)
 
     parsingResultPtr := unsafe.Pointer(&parsingResult)
 
     success := (*(*C.uint8_t)(parsingResultPtr))
     if success > 0 {
         _ok := (*C.wirefilter_parsing_result_ok)(parsingResultPtr)
-        return &AST{ptr: _ok.ast}, nil
+        return &AST{
+            ptr: _ok.ast,
+            rst: &parsingResult,
+        }, nil
     } else {
         _err := (*C.wirefilter_parsing_result_err)(parsingResultPtr)
         s := C.wirefilter_rust_allocated_str_t(_err.msg)
@@ -87,15 +90,13 @@ func (s Schema) Parse(input string) (*AST, error) {
     }
 }
 
-// TODO: wirefilter_free_parsing_result
-
 func (s *Schema) Close() {
-    C.wirefilter_free_parsing_result(s.rst)
     C.wirefilter_free_scheme(s.ptr)
 }
 
 type AST struct {
     ptr      *C.wirefilter_filter_ast_t
+    rst      *C.wirefilter_parsing_result_t
     compiled bool
 }
 
@@ -104,14 +105,15 @@ func (ast *AST) Compile() *Filter {
     //defer C.free(unsafe.Pointer(compileResult))
 
     ast.compiled = true
+
     return &Filter{
         ptr: compileResult,
     }
 }
 
-func (ast *AST) Uses(name string) (bool, error) {
+func (ast *AST) Uses(name string) bool {
     if ast.compiled {
-        return false, errors.New("ast compiled already")
+        panic("Uses() should not called after filter have been compiled")
     }
 
     cName := C.CString(name)
@@ -122,28 +124,36 @@ func (ast *AST) Uses(name string) (bool, error) {
         data:   cName,
         length: cNameSizeT,
     })
-    return bool(r), nil
+    //defer C.free(unsafe.Pointer(&r))
+    return bool(r)
 }
 
-func (ast *AST) JSON() (string, error) {
+func (ast *AST) JSON() string {
     if ast.compiled {
-        return "", errors.New("ast compiled already")
+        panic("JSON() should not called after filter have been compiled")
     }
+
     r := C.wirefilter_serialize_filter_to_json(ast.ptr)
 
     data := string(C.GoBytes(unsafe.Pointer(r.data), C.int(r.length)))
     C.wirefilter_free_string(r)
-    return data, nil
+    return data
 }
 
-func (ast AST) Hash() (uint64, error) {
+func (ast *AST) Hash() uint64 {
     if ast.compiled {
-        return 0, errors.New("ast compiled already")
+        panic("Hash() should not called after filter have been compiled")
     }
 
     r := C.wirefilter_get_filter_hash(ast.ptr)
-    //defer C.free(unsafe.Pointer(r))
-    return uint64(r), nil
+    //defer C.free(unsafe.Pointer(&r))
+    return uint64(r)
+}
+
+func (ast *AST) Close() {
+    if !ast.compiled {
+        C.wirefilter_free_parsing_result(*ast.rst)
+    }
 }
 
 type Filter struct {
