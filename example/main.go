@@ -32,7 +32,7 @@ func main() {
         "internal":            wirefilter.TYPE_BOOL,
     })
 
-    ctx := wirefilter.NewExecutionContext(schema)
+    ctx := schema.NewExecutionContext()
     defer ctx.Close()
 
     ctxMap := map[string]interface{}{

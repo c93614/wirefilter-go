@@ -90,6 +90,14 @@ func (s Schema) Parse(input string) (*AST, error) {
     }
 }
 
+func (s *Schema) NewExecutionContext() *ExecutionContext {
+    ctx := C.wirefilter_create_execution_context(s.ptr)
+    return &ExecutionContext{
+        ptr:    ctx,
+        schema: s,
+    }
+}
+
 func (s *Schema) Close() {
     C.wirefilter_free_scheme(s.ptr)
 }
@@ -172,14 +180,6 @@ func (f *Filter) Close() {
 type ExecutionContext struct {
     ptr    *C.wirefilter_execution_context_t
     schema *Schema
-}
-
-func NewExecutionContext(schema *Schema) *ExecutionContext {
-    ctx := C.wirefilter_create_execution_context(schema.ptr)
-    return &ExecutionContext{
-        ptr:    ctx,
-        schema: schema,
-    }
 }
 
 func (ctx *ExecutionContext) SetFieldValue(name string, value interface{}) {
