@@ -83,21 +83,19 @@ func main() {
     }
 
     for _, rule := range rules {
-        ast, err := schema.Parse(rule)
+        filter, err := schema.Parse(rule)
 
         if err != nil {
             fmt.Print(rule, "\n=> ", err, "\n\n")
             continue
         }
 
-        //*
-        filter := ast.Compile()
+        /*
+        filter.Compile()
         fmt.Print(rule, "\n=> Match: ", filter.Execute(ctx), "\n\n")
-        filter.Close()
         /*/
-        fmt.Print(rule, "\n=> JSON: ", ast.JSON(), "\n=> Hash: ", ast.Hash(), "\n\n")
+        fmt.Print(rule, "\n=> JSON: ", filter.JSON(), "\n=> Hash: ", filter.Hash(), "\n\n")
         //*/
-
-        ast.Close()
+        filter.Close()
     }
 }
